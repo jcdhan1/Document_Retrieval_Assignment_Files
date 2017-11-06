@@ -1,4 +1,4 @@
-import math
+import math, time
 
 # Helpers
 def tuplist(d):
@@ -26,6 +26,11 @@ def doc_wordcount(index):
 class Retrieve:
     # Create new Retrieve object storing index and termWeighting scheme
     def __init__(self,index,termWeighting):
+        self.total_time = 0
+        self.q_count = 0
+        self.timed = input("Measure time?").lower() == 'yes'
+        if self.timed:
+            self.max_q = int(input("How many queries?"))
         """ index         : a dictionary where each key is a word and each
                             value is a dictionary. In each of the
                             sub-dictionaries, each key is a docid from
@@ -50,6 +55,8 @@ class Retrieve:
 
     # Method to apply query to index
     def forQuery(self,query):
+        if self.timed:
+            t_start = time.time()
         """ query : a dictionary where each key is a string and each value is a
                     integer
             
@@ -80,7 +87,12 @@ class Retrieve:
         ranked = tuplist(hits)
         ranked.sort(key=lambda tup: tup[1])
         ranked.reverse()
-        
+        if self.timed:
+            q_time = time.time() - t_start
+            self.q_count += 1
+            self.total_time += q_time
+            if self.q_count==self.max_q:
+                print(self.total_time)
         return list(zip(*ranked))[0]
     
     def tf_wordscore(self, pair):
