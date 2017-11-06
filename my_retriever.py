@@ -1,4 +1,5 @@
 import math, time
+from datetime import timedelta
 
 # Helpers
 def tuplist(d):
@@ -94,6 +95,7 @@ class Retrieve:
             self.total_time += q_time
             if self.q_count==self.max_q:
                 print(self.total_time)
+                print(str(timedelta(seconds=self.total_time)))
         return list(zip(*ranked))[0]
     
     def tf_wordscore(self, pair):
