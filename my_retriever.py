@@ -102,5 +102,5 @@ class Retrieve:
         
         """ Calculate inverse document frequency, the more common it is among all
             documents, the lower it will be """
-        idf = math.log(len(self.all_docids) / (1 + contained)) if is_idf else 1
+        idf = (math.log(len(self.all_docids) / (1 + contained))) if is_idf else 1
         return dict(map(lambda docid: (docid, normalized[docid]*idf), pair[1]))
