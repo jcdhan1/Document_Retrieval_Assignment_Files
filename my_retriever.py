@@ -3,26 +3,6 @@ import math
 # Helpers
 def tuplist(d):
     return [(k, v) for k, v in d.items()]
-
-def tfidf_wordscore(pair, wordcounts_dict, all_docids):
-    #Returns a dictionary of docids to tfidf scores for a given word.
-
-    #Calculate normalized frequencies of the word in each document
-    normalized = {}
-    n_containing = 0 # how many documents contain the word
-    for docid in wordcounts_dict.keys():
-        if docid not in pair[1]:
-            normalized[docid] = 0
-        else:
-            normalized[docid] = pair[1][docid]/wordcounts_dict[docid]
-            n_containing += 1
-    """ Calculate inverse document frequency, the more common it is among all
-        documents, the lower it will be """
-    idf = math.log(len(all_docids) / (1 + n_containing))
-    wordscore = {}
-    for docid in pair[1]:
-        wordscore[docid] = normalized[docid]*idf #product of tf and idf
-    return wordscore
     
 def doc_distinct(index):
     #How many different documents are there?
@@ -33,9 +13,7 @@ def doc_distinct(index):
     return docid_set
     
 def doc_wordcount(index):
-    """ doc_wordcount:  a dictionary telling us how many distinct words exist
-                        for a given document. Keys are docids.
-    """
+    # how many distinct words exist in an individual document?
     indx = tuplist(index)
     wordcounts_dict = {}
     for w in indx:
@@ -46,7 +24,6 @@ def doc_wordcount(index):
     return wordcounts_dict
 
 class Retrieve:
-    # Constructors
     # Create new Retrieve object storing index and termWeighting scheme
     def __init__(self,index,termWeighting):
         """ index         : a dictionary where each key is a word and each
@@ -59,7 +36,7 @@ class Retrieve:
             
             Instantiates a new retrieve object
         """
-        #Initialise Variables, usually doesn't change
+        #Initialise Variables
         self.index = index
         self.termWeighting = termWeighting
         
@@ -78,19 +55,6 @@ class Retrieve:
             
             Returns a list of docids
         """
-        #Query changes, tfidf, tf and binary by default.
-        
-        return self.tfidf(query)
-    
-    # termWeighting schemes
-    def tfidf(self, query):
-        """ Words that appear frequently in one document score higher.
-            Words that appear in many documents score lower.
-            
-            The document score is sum of each of its word scores.
-        """
-        
-        #Use wordcounts of each document
         
         """ get sub-dictionaries in self.index that have a word that exists 
             in the query """
@@ -99,18 +63,16 @@ class Retrieve:
             valid_sub_dict += list(filter(lambda x: x[0]==q_string,
                                           tuplist(self.index)))
         
-        #hit-dictionary
-        #all_docid = set().union(*list(map(lambda pair: pair[1].keys(),
-        #                              valid_sub_dict)))
-        hits = dict.fromkeys(self.all_docids)
+        hits = dict(zip(self.all_docids, [0]*len(self.all_docids)))
         
         """ For each key (word), add the tfidf score the hits-dictionary."""
         for pair in valid_sub_dict:
             for docid in self.all_docids:
-                if hits[docid] is None:
-                    hits[docid] = 0
                 if docid in pair[1].keys():
-                    multiplicand = tfidf_wordscore(pair, self.wordcounts, self.all_docids)[docid]
+                    if self.termWeighting is not "binary":
+                        multiplicand = self.tfidf_wordscore(pair, self.termWeighting == "tfidf")[docid]
+                    else:
+                        multiplicand = 1
                     summand = multiplicand *query[pair[0]]
                     hits[docid] += summand
         
@@ -118,35 +80,27 @@ class Retrieve:
         ranked = tuplist(hits)
         ranked.sort(key=lambda tup: tup[1])
         ranked.reverse()
+        
         return list(zip(*ranked))[0]
     
-    def tf(self, query):
-        """ get sub-dictionaries in self.index that have a word that exists 
-            in the query """
-        valid_sub_dict = []
-        for q_string in query.keys():
-            valid_sub_dict += list(filter(lambda x: x[0]==q_string,
-                                          tuplist(self.index)))
-        
-        #hit-dictionary
-        all_docid = set().union(*list(map(lambda pair: pair[1].keys(),
-                                      valid_sub_dict)))
-        hits = dict.fromkeys(all_docid)
-        
-        """ For each key, add the product of document frequency to query
-            frequency to the hits-dictionary."""
-        for pair in valid_sub_dict:
-            for docid in all_docid:
-                if docid in pair[1].keys():
-                    if hits[docid] is None:
-                        hits[docid] = 0
-                    multiplicand = pair[1][docid]
-                    summand = multiplicand *query[pair[0]]
-                    hits[docid] += summand
-        
-        #Sort hits from highest scoring docid to lowest scoring
-        ranked = tuplist(hits)
-        ranked.sort(key=lambda tup: tup[1])
-        ranked.reverse()
-        return list(zip(*ranked))[0]
+    def tf_wordscore(self, pair):
+        normalized = {}
+        contained = 0 # how many documents contain the word
+        for docid in self.wordcounts.keys():
+            if docid not in pair[1]:
+                normalized[docid] = 0
+            else:
+                normalized[docid] = pair[1][docid]/self.wordcounts[docid]
+                contained += 1
+        return normalized, contained
+
+    def tfidf_wordscore(self,pair, is_idf):
+        #Returns a dictionary of docids to tf or tfidf scores for a given word.
     
+        #Calculate normalized frequencies of the word in each document
+        normalized, contained = self.tf_wordscore(pair)
+        
+        """ Calculate inverse document frequency, the more common it is among all
+            documents, the lower it will be """
+        idf = math.log(len(self.all_docids) / (1 + contained)) if is_idf else 1
+        return dict(map(lambda docid: (docid, normalized[docid]*idf), pair[1]))

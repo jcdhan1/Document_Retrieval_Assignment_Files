@@ -1,0 +1,7 @@
+ir_engine.py
+eval_ir.py
+cacm_gold_std.txt
+documents.txt
+queries*
+index*
+.DS_Store
