@@ -90,6 +90,7 @@ class Retrieve:
         if self.timed:
             q_time = time.time() - t_start
             self.q_count += 1
+            print(self.q_count)
             self.total_time += q_time
             if self.q_count==self.max_q:
                 print(self.total_time)
