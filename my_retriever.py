@@ -4,23 +4,7 @@ import math
 def tuplist(d):
     return [(k, v) for k, v in d.items()]
 
-def tf(word, doc_indices):
-    #Frequency of a word in one document
-    return doc_indices.words.count(word) / len(doc_indices.words)
-
-def idf(s, doc_indiceslist):
-    #how common does string s appear in every document being analyzed
-    return math.log(len(doc_indiceslist) / (1 + n_containing(s, doc_indiceslist)))
-
-def n_containing(word, doc_indiceslist):
-    #Number of distinct documents that contain the word
-    return sum(1 for doc_indices in doc_indiceslist if word in doc_indices.words)
-
-def formula_tfidf(word, doc_indices, doc_indiceslist):
-    #tdf score is product of tf and idf
-    return tf(word, doc_indices) * idf(word, doc_indiceslist)
-
-def tfidf_wordscore(pair, wordcounts_dict, index):
+def tfidf_wordscore(pair, wordcounts_dict, all_docids):
     #Returns a dictionary of docids to tfidf scores for a given word.
 
     #Calculate normalized frequencies of the word in each document
@@ -34,7 +18,7 @@ def tfidf_wordscore(pair, wordcounts_dict, index):
             n_containing += 1
     """ Calculate inverse document frequency, the more common it is among all
         documents, the lower it will be """
-    idf = math.log(len(index) / (1 + n_containing))
+    idf = math.log(len(all_docids) / (1 + n_containing))
     wordscore = {}
     for docid in pair[1]:
         wordscore[docid] = normalized[docid]*idf #product of tf and idf
@@ -50,16 +34,15 @@ def doc_distinct(index):
     
 def doc_wordcount(index):
     """ doc_wordcount:  a dictionary telling us how many distinct words exist
-                        for a single document. Keys are docids.
+                        for a given document. Keys are docids.
     """
     indx = tuplist(index)
     wordcounts_dict = {}
     for w in indx:
         for docid in w[1].keys():
-            #Does uniqueness affect final evaluation?
             if docid not in wordcounts_dict:
                 wordcounts_dict[docid] = 0
-            wordcounts_dict[docid] += w[1][docid] #Either += 1 of w[1][docid]
+            wordcounts_dict[docid] += 1
     return wordcounts_dict
 
 class Retrieve:
@@ -127,7 +110,7 @@ class Retrieve:
                 if hits[docid] is None:
                     hits[docid] = 0
                 if docid in pair[1].keys():
-                    multiplicand = tfidf_wordscore(pair, self.wordcounts, self.index)[docid]
+                    multiplicand = tfidf_wordscore(pair, self.wordcounts, self.all_docids)[docid]
                     summand = multiplicand *query[pair[0]]
                     hits[docid] += summand
         
